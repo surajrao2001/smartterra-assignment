@@ -1,0 +1,13 @@
+@import "./theme/theme.css";
+@import "tailwindcss";
+
+@theme {
+  --color-primary: var(--theme-primary);
+  --color-secondary: var(--theme-secondary);
+  --color-surface: var(--theme-surface);
+  --color-surface-muted: var(--theme-surface-muted);
+  --color-text: var(--theme-text);
+  --color-text-muted: var(--theme-text-muted);
+  --color-border: var(--theme-border);
+  --color-accent: var(--theme-accent);
+}

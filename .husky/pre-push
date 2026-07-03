@@ -1,0 +1,12 @@
+#!/usr/bin/env sh
+. "$(dirname -- "$0")/_/husky.sh"
+
+echo "Running type check before push..."
+
+npm run typecheck
+
+echo "Running lint before push..."
+
+npx lint-staged
+
+echo "Pre-push hooks completed successfully."
