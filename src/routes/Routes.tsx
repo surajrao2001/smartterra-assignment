@@ -1,29 +1,33 @@
 import type { RouteObject } from 'react-router-dom';
+import { LoginScreen } from '../components/auth/LoginScreen';
+import { EditorPage } from '../pages/EditorPage';
+import { AuthGuard, GuestGuard } from './AuthGuard';
+import { RootRedirect } from './RootRedirect';
 import { ROUTES } from './routePaths';
-import PrivateRoutes from './PrivateRoutes';
-import PublicRoutes from './PublicRoutes';
-import {Home} from '../pages/home/Home';
 
-
-const Routes: RouteObject[] = [
-  {
-    element: <PublicRoutes />,
-    children: [
-      {
-        path: ROUTES.HOME,
-        element: <Home />,
-      }
-    ],
-  },
-  {
-    element: <PrivateRoutes />,
-    children: [
-      {
-        path: ROUTES.HOME,
-        // element: <HomePage />,
-      }
-    ],
-  },
+const routes: RouteObject[] = [
+    {
+        path: '/',
+        element: <RootRedirect />,
+    },
+    {
+        element: <GuestGuard />,
+        children: [
+            {
+                path: ROUTES.LOGIN,
+                element: <LoginScreen />,
+            },
+        ],
+    },
+    {
+        element: <AuthGuard />,
+        children: [
+            {
+                path: ROUTES.APP,
+                element: <EditorPage />,
+            },
+        ],
+    },
 ];
 
-export default Routes;
+export default routes;
