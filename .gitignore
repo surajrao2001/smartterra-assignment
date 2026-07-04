@@ -12,6 +12,10 @@ dist
 dist-ssr
 *.local
 
+avast-ca.pem
+
+src/data/water-distribution-mains.geojson
+
 # Editor directories and files
 .vscode/*
 !.vscode/extensions.json
@@ -22,3 +26,4 @@ dist-ssr
 *.njsproj
 *.sln
 *.sw?
+.cursor
