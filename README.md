@@ -26,17 +26,68 @@ No password required — pick a user on the login screen:
 
 | Name         | Role     | What to demo                                                   |
 | ------------ | -------- | -------------------------------------------------------------- |
-| Priya Sharma | Admin    | Review pending edits, approve/reject, view audit trail         |
-| Rohan Mehta  | Editor   | Edit network elements, assign field tasks, submit for approval |
-| Karan Verma  | Operator | Fill field verification forms for assigned tasks               |
+| Anirudh Shastry | Admin    | Review pending edits, approve/reject, view audit trail         |
+| Amanjeet Sahu   | Editor   | Edit network elements, assign field tasks, submit for approval |
+| Suraj Rao       | Operator | Fill field verification forms for assigned tasks               |
 
 ## Demo workflow
 
-1. **Editor** (Rohan): Log in → select a pipe or junction → modify properties → changes accumulate in a draft Edit → optionally assign field task to operator OR submit directly for approval
-2. **Operator** (Karan): Log in → open assigned Edit in Edits tab → fill field form (observed value, condition, notes)
-3. **Editor** (Rohan): Submit edit for approval after operator completes field form (or skip field step)
-4. **Admin** (Priya): Open pending edit → review changes + field input + thread → approve (merges into published network) or reject with reason
-5. **Editor** (Rohan): If rejected, resume editing the same Edit and resubmit
+1. **Editor** (Amanjeet): Log in → select a pipe or junction → modify properties → changes accumulate in a draft Edit → optionally assign field task to operator OR submit directly for approval
+2. **Operator** (Suraj): Log in → open assigned Edit in Edits tab → fill field form (observed value, condition, notes)
+3. **Editor** (Amanjeet): Submit edit for approval after operator completes field form (or skip field step)
+4. **Admin** (Anirudh): Edits queue → **Thread / audit** → read **Proposed changes** + field input + thread → approve (merges into published network) or reject with reason
+5. **Editor** (Amanjeet): If rejected, resume editing the same Edit and resubmit
+
+## Map interactions (Editor)
+
+All map edits go into the active **draft Edit** — not `publishedNetwork` until admin approves. Turn on **Show pending overlay** (or complete a split/add; overlay auto-enables) to see orange pending geometry.
+
+### Split pipe
+
+1. Click **Split pipe** (toolbar highlights)
+2. Click **on a pipe** (not empty map — pipe hit-target captures the click)
+3. A new junction is placed at the nearest point on that segment; the pipe becomes two pipes
+4. Creates 4 `PropertyChange` rows: delete old pipe, add junction, add two new pipes
+
+### Add element
+
+1. Click **Add element** (toolbar highlights)
+2. In the Properties panel, choose **Junction**, **Valve**, or **Pipe**
+3. Place on the map:
+
+| Type | How to place |
+| ---- | ------------ |
+| Junction | Click anywhere on the map |
+| Valve | Click anywhere on the map |
+| Pipe | Click **start node**, then **end node** (two clicks on existing junctions/valves/reservoirs) |
+
+Default properties: junction (elevation 200, demand 0), valve (PRV, 200 mm, setting 30), pipe (250 mm, roughness 130, open). Length for new pipes is computed from node coordinates.
+
+Implementation: `src/utils/elementFactory.ts`, wired from `NetworkCanvas.tsx`.
+
+## New element IDs
+
+Auto-generated — not sequential like the PDF sample (`J1`, `P2`):
+
+| Prefix | Element | Example |
+| ------ | ------- | ------- |
+| `J-` | Junction | `J-a1b2c3` |
+| `V-` | Valve | `V-x9y8z7` |
+| `P-` | Pipe | `P-m4n5p6` |
+
+Pattern: `{prefix}-{nanoid(6)}` — same scheme as junctions/pipes created by **split pipe**. IDs are stable on the `Edit` once created and appear in audit and admin review.
+
+## Admin review — Proposed changes
+
+On **Thread / audit**, select a pending edit. **Proposed changes** lists every `PropertyChange` in `edit.changes[]` — exactly what would merge into `publishedNetwork` if you click **Approve & publish**. It is not the live map; it is the review checklist.
+
+| `changeType` | Meaning |
+| ------------ | ------- |
+| **add** | New element (shows type + id; pipes show `start → end`) |
+| **modify** | Field update with before → after diff (e.g. `diameter: 250 → 300`) |
+| **delete** | Element removed (cascade delete lists each pipe separately) |
+
+After approval, `applyChangesToNetwork()` in `networkOps.ts` applies this list — the only code path that mutates `publishedNetwork`.
 
 ## State shape
 
@@ -64,6 +115,9 @@ Each `Edit` contains:
 - **Rejected edits are reused** — same Edit object resumes to `draft` to preserve audit trail and thread
 - **Cascade delete** records each removed pipe as a separate `PropertyChange` for honest audit trails
 - **Pipe coordinates** are recomputed from connected node positions, not trusted from stale GeoJSON
+- **Add element placement** — junction/valve by map click; pipe by clicking two nodes (assignment only specifies click placement for pipe *split*; generic add UX is our choice, documented here)
+- **Element IDs** — `J-/V-/P-` + 6-char nanoid for editor-created elements (PDF sample uses fixed ids like `J1`, `P2`)
+- **Pending overlay** — off by default; auto-enabled after split/add; toggle compares published vs draft on the map
 - **Vancouver open data** — optional seed source; see [Vancouver open data (assignment §12)](#vancouver-open-data-assignment-12) below
 
 ## Vancouver open data (assignment §12)
@@ -193,13 +247,15 @@ const USE_VANCOUVER_OPEN_DATA = false;
 
 - Login with hardcoded users and role-based UI
 - RBAC enforced in Zustand store actions + UI guards
-- SVG network map with element selection
-- Editor: modify/add/delete elements, cascade delete, insert junction on pipe (splits pipe)
+- SVG network map with element selection and pending-edit overlay toggle
+- Editor: modify/add/delete elements, cascade delete
+- **Split pipe** — click pipe in split mode; inserts junction at click point (`insertJunctionOnPipe`)
+- **Add element** — click map (junction/valve) or two nodes (pipe); IDs via `elementFactory.ts`
 - Field task assignment and operator form
 - Admin approve/reject workflow with merge into published network
+- **Proposed changes** panel for admin — full `changes[]` review with add/modify/delete summaries
 - Conversation thread and audit trail per Edit
 - State persistence across page refresh
-- Pending-edit map overlay toggle (stretch)
 - Diff snippets in edit detail for modify changes (stretch)
 
 ### Skipped (time-boxed)
@@ -222,6 +278,7 @@ src/
     map/          # SVG canvas, pipes, markers
     panels/       # Properties, edits, approval, thread, audit
   hooks/          # useCan, useActiveEdit
+  utils/          # editSummary, elementFactory (IDs + map placement defaults)
   pages/          # EditorPage
   routes/         # Login/app routing with auth guards
 ```
