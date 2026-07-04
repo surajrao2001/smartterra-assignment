@@ -4,6 +4,7 @@ import { NetworkCanvas } from '../components/map/NetworkCanvas';
 import { EditDetailPanel } from '../components/panels/EditDetailPanel';
 import { EditsListPanel } from '../components/panels/EditsListPanel';
 import { ElementPropertiesPanel } from '../components/panels/ElementPropertiesPanel';
+import type { AddElementMode } from '../utils/elementFactory';
 
 type Tab = 'properties' | 'edits' | 'thread';
 
@@ -16,10 +17,19 @@ const TABS: { id: Tab; label: string }[] = [
 export function EditorPage() {
     const [tab, setTab] = useState<Tab>('properties');
     const [showAddForm, setShowAddForm] = useState(false);
+    const [addElementMode, setAddElementMode] = useState<AddElementMode | null>(
+        null
+    );
 
     const openAddElement = () => {
         setTab('properties');
         setShowAddForm(true);
+        setAddElementMode({ type: 'junction' });
+    };
+
+    const closeAddElement = () => {
+        setShowAddForm(false);
+        setAddElementMode(null);
     };
 
     return (
@@ -27,19 +37,24 @@ export function EditorPage() {
             <AppHeader />
             <div className="flex min-h-0 flex-1">
                 <div className="flex min-w-0 flex-1 flex-col">
-                    <NetworkCanvas onAddElement={openAddElement} />
+                    <NetworkCanvas
+                        onAddElement={openAddElement}
+                        addElementMode={addElementMode}
+                        onAddElementModeChange={setAddElementMode}
+                        onAddElementComplete={closeAddElement}
+                    />
                 </div>
-                <aside className="flex w-[380px] shrink-0 flex-col border-l border-border bg-surface">
-                    <nav className="flex shrink-0 border-b border-border">
+                <aside className="flex w-[480px] shrink-0 flex-col border-l border-border bg-surface">
+                    <nav className="flex shrink-0 border-b border-border px-2">
                         {TABS.map(({ id, label }) => (
                             <button
                                 key={id}
                                 type="button"
                                 onClick={() => setTab(id)}
-                                className={`flex-1 px-2 py-3 text-xs font-medium transition ${
+                                className={`flex-1 px-3 py-3.5 text-sm font-medium transition ${
                                     tab === id
-                                        ? 'border-b-2 border-primary text-primary'
-                                        : 'text-text-muted hover:text-text'
+                                        ? 'border-b-2 border-text text-text'
+                                        : 'border-b-2 border-transparent text-text-muted hover:text-text'
                                 }`}
                             >
                                 {label}
@@ -50,7 +65,9 @@ export function EditorPage() {
                         {tab === 'properties' && (
                             <ElementPropertiesPanel
                                 showAddForm={showAddForm}
-                                onAddFormClose={() => setShowAddForm(false)}
+                                addElementMode={addElementMode}
+                                onAddElementModeChange={setAddElementMode}
+                                onAddFormClose={closeAddElement}
                                 onSelectEdit={() => setTab('thread')}
                             />
                         )}

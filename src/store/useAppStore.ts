@@ -36,6 +36,7 @@ interface AppState {
     setSelectedElement: (id: string | null) => void;
     setSelectedEdit: (id: string | null) => void;
     togglePendingOverlay: () => void;
+    setShowPendingOverlay: (value: boolean) => void;
 
     createDraftEdit: () => string;
     getOrCreateActiveDraft: () => string | null;
@@ -127,6 +128,7 @@ export const useAppStore = create<AppState>()(
             setSelectedEdit: id => set({ selectedEditId: id }),
             togglePendingOverlay: () =>
                 set(s => ({ showPendingOverlay: !s.showPendingOverlay })),
+            setShowPendingOverlay: value => set({ showPendingOverlay: value }),
 
             createDraftEdit: () => {
                 const user = requireUser(get);
@@ -213,6 +215,8 @@ export const useAppStore = create<AppState>()(
                             ),
                         ],
                     })),
+                    selectedElementId: element.id,
+                    showPendingOverlay: true,
                 });
             },
 
@@ -387,6 +391,7 @@ export const useAppStore = create<AppState>()(
                         ],
                     })),
                     selectedElementId: result.junction.id,
+                    showPendingOverlay: true,
                 });
             },
 
