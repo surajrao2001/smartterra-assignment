@@ -1,8 +1,16 @@
+import filteredMains from './vancouver-mains-filtered.json';
 import type { NetworkState } from '../types/network';
+import {
+    vancouverMainsToNetwork,
+    type VancouverGeoJson,
+} from '../store/vancouverMainsOps';
 import type { GeoJsonFeatureCollection } from '../store/networkOps';
 import { geoJsonToNetwork } from '../store/networkOps';
 
-const SAMPLE_GEOJSON: GeoJsonFeatureCollection = {
+// Set false to use the assignment PDF sample network instead
+const USE_VANCOUVER_OPEN_DATA = false;
+
+const PDF_SAMPLE_GEOJSON: GeoJsonFeatureCollection = {
     type: 'FeatureCollection' as const,
     features: [
         {
@@ -135,5 +143,13 @@ const SAMPLE_GEOJSON: GeoJsonFeatureCollection = {
 };
 
 export function createSeedNetwork(): NetworkState {
-    return geoJsonToNetwork(SAMPLE_GEOJSON);
+    if (USE_VANCOUVER_OPEN_DATA) {
+        return vancouverMainsToNetwork(
+            filteredMains as unknown as VancouverGeoJson,
+            {
+                maxPipes: 100,
+            }
+        );
+    }
+    return geoJsonToNetwork(PDF_SAMPLE_GEOJSON);
 }
