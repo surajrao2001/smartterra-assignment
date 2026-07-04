@@ -2,7 +2,17 @@ import { useState } from 'react';
 import { SEED_USERS } from '../../data/seedUsers';
 import { useAppStore } from '../../store/useAppStore';
 
-export function FieldTaskForm({ editId }: { editId: string }) {
+interface FieldTaskFormProps {
+    editId: string;
+    compact?: boolean;
+    onAssigned?: () => void;
+}
+
+export function FieldTaskForm({
+    editId,
+    compact = false,
+    onAssigned,
+}: FieldTaskFormProps) {
     const assignFieldTask = useAppStore(s => s.assignFieldTask);
     const [operatorId, setOperatorId] = useState(
         SEED_USERS.find(u => u.role === 'operator')?.id ?? ''
@@ -11,14 +21,29 @@ export function FieldTaskForm({ editId }: { editId: string }) {
 
     const operators = SEED_USERS.filter(u => u.role === 'operator');
 
+    const handleAssign = () => {
+        assignFieldTask(editId, operatorId, instructions);
+        onAssigned?.();
+    };
+
     return (
-        <section className="rounded border border-border p-3">
-            <h4 className="mb-2 text-sm font-medium">Assign field task</h4>
+        <section
+            className={
+                compact
+                    ? 'space-y-2'
+                    : 'rounded-xl border border-border bg-surface-muted p-4'
+            }
+        >
+            {!compact && (
+                <h4 className="mb-3 text-xs font-semibold uppercase tracking-wide text-text-muted">
+                    Assign field task
+                </h4>
+            )}
             <div className="space-y-2">
                 <select
                     value={operatorId}
                     onChange={e => setOperatorId(e.target.value)}
-                    className="w-full rounded border border-border px-2 py-1 text-sm"
+                    className="w-full rounded-lg border border-border bg-surface-raised px-3 py-2 text-sm text-text"
                 >
                     {operators.map(op => (
                         <option key={op.id} value={op.id}>
@@ -29,19 +54,17 @@ export function FieldTaskForm({ editId }: { editId: string }) {
                 <textarea
                     value={instructions}
                     onChange={e => setInstructions(e.target.value)}
-                    placeholder="Instructions for the operator…"
-                    className="w-full rounded border border-border px-2 py-1 text-sm"
-                    rows={3}
+                    placeholder="What should the operator verify on site?"
+                    className="w-full rounded-lg border border-border bg-surface-raised px-3 py-2 text-sm text-text placeholder:text-text-muted"
+                    rows={compact ? 2 : 3}
                 />
                 <button
                     type="button"
-                    onClick={() =>
-                        assignFieldTask(editId, operatorId, instructions)
-                    }
+                    onClick={handleAssign}
                     disabled={!instructions.trim()}
-                    className="rounded bg-primary px-3 py-1.5 text-sm text-white disabled:opacity-50"
+                    className="w-full rounded-lg border border-border py-2 text-xs font-medium text-text transition hover:bg-surface-raised disabled:opacity-40"
                 >
-                    Assign to operator
+                    Send to operator
                 </button>
             </div>
         </section>

@@ -8,38 +8,44 @@ export function ApprovalControls({ editId }: { editId: string }) {
     const [showReject, setShowReject] = useState(false);
 
     return (
-        <section className="rounded border border-amber-200 bg-amber-50 p-3">
-            <h4 className="mb-2 text-sm font-medium">Admin review</h4>
+        <section className="rounded-xl border border-warning/30 bg-warning/5 p-4">
+            <h4 className="mb-3 text-sm font-semibold text-text">
+                Admin review
+            </h4>
+            <p className="mb-4 text-xs text-text-muted">
+                Approving merges this edit into the published network for all
+                roles.
+            </p>
             <div className="flex gap-2">
                 <button
                     type="button"
                     onClick={() => approveEdit(editId)}
-                    className="rounded bg-green-600 px-3 py-1.5 text-sm text-white"
+                    className="flex-1 rounded-lg bg-success py-2.5 text-sm font-medium text-white hover:opacity-90"
                 >
                     Approve & publish
                 </button>
                 <button
                     type="button"
                     onClick={() => setShowReject(!showReject)}
-                    className="rounded border border-red-300 px-3 py-1.5 text-sm text-red-700"
+                    className="flex-1 rounded-lg border border-danger/40 py-2.5 text-sm font-medium text-danger hover:bg-danger/10"
                 >
                     Reject
                 </button>
             </div>
             {showReject && (
-                <div className="mt-2 space-y-2">
+                <div className="mt-3 space-y-2">
                     <textarea
                         value={reason}
                         onChange={e => setReason(e.target.value)}
-                        placeholder="Rejection reason…"
-                        className="w-full rounded border border-border px-2 py-1 text-sm"
+                        placeholder="Reason for rejection (visible to editor)…"
+                        className="w-full rounded-lg border border-border bg-surface-raised px-3 py-2 text-sm text-text"
                         rows={2}
                     />
                     <button
                         type="button"
                         onClick={() => rejectEdit(editId, reason)}
                         disabled={!reason.trim()}
-                        className="rounded bg-red-600 px-3 py-1.5 text-sm text-white disabled:opacity-50"
+                        className="w-full rounded-lg bg-danger py-2 text-sm font-medium text-white disabled:opacity-40"
                     >
                         Confirm rejection
                     </button>

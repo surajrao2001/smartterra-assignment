@@ -2,12 +2,96 @@
 @import 'tailwindcss';
 
 @theme {
+    --color-bg: var(--theme-bg);
     --color-primary: var(--theme-primary);
+    --color-primary-hover: var(--theme-primary-hover);
     --color-secondary: var(--theme-secondary);
     --color-surface: var(--theme-surface);
     --color-surface-muted: var(--theme-surface-muted);
+    --color-surface-raised: var(--theme-surface-raised);
     --color-text: var(--theme-text);
     --color-text-muted: var(--theme-text-muted);
     --color-border: var(--theme-border);
     --color-accent: var(--theme-accent);
+    --color-map-bg: var(--theme-map-bg);
+    --color-success: var(--theme-success);
+    --color-warning: var(--theme-warning);
+    --color-danger: var(--theme-danger);
+    --color-pending: var(--theme-pending);
+}
+
+* {
+    box-sizing: border-box;
+    scrollbar-width: thin;
+    scrollbar-color: var(--theme-surface-raised) var(--theme-surface-muted);
+}
+
+html {
+    color-scheme: dark;
+}
+
+body {
+    margin: 0;
+    min-height: 100vh;
+    background: var(--theme-bg);
+    color: var(--theme-text);
+    font-family:
+        'Inter',
+        system-ui,
+        -apple-system,
+        'Segoe UI',
+        sans-serif;
+    -webkit-font-smoothing: antialiased;
+}
+
+#root {
+    min-height: 100vh;
+}
+
+input,
+select,
+textarea,
+button {
+    font: inherit;
+}
+
+button,
+a,
+label,
+select,
+summary,
+[role='button'] {
+    cursor: pointer;
+}
+
+button:disabled,
+select:disabled,
+input:disabled,
+textarea:disabled {
+    cursor: not-allowed;
+}
+
+
+*::-webkit-scrollbar {
+    width: 10px;
+    height: 10px;
+}
+
+*::-webkit-scrollbar-track {
+    background: var(--theme-surface-muted);
+    border-radius: 999px;
+}
+
+*::-webkit-scrollbar-thumb {
+    background: var(--theme-surface-raised);
+    border: 2px solid var(--theme-surface-muted);
+    border-radius: 999px;
+}
+
+*::-webkit-scrollbar-thumb:hover {
+    background: var(--theme-border);
+}
+
+*::-webkit-scrollbar-corner {
+    background: var(--theme-surface-muted);
 }

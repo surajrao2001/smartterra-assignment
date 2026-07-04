@@ -1,17 +1,14 @@
 import { useEffect } from 'react';
+import { StatusBadge } from '../ui/StatusBadge';
 import { useAppStore } from '../../store/useAppStore';
+import { getEditTitle } from '../../utils/editSummary';
 import type { Edit, EditStatus } from '../../types/edit';
 
-const STATUS_LABELS: Record<EditStatus, string> = {
-    draft: 'Draft',
-    assigned: 'Assigned',
-    field_submitted: 'Field submitted',
-    pending_approval: 'Pending approval',
-    approved: 'Approved',
-    rejected: 'Rejected',
-};
+interface EditsListPanelProps {
+    variant?: 'queue' | 'compact';
+}
 
-export function EditsListPanel() {
+export function EditsListPanel({ variant = 'compact' }: EditsListPanelProps) {
     const edits = useAppStore(s => s.edits);
     const currentUser = useAppStore(s => s.currentUser);
     const selectedEditId = useAppStore(s => s.selectedEditId);
@@ -36,17 +33,26 @@ export function EditsListPanel() {
         }
     }, [filtered, selectedEditId, currentUser?.role, setSelectedEdit]);
 
-    const emptyMessage =
-        currentUser?.role === 'operator'
-            ? 'No field tasks assigned to you yet. An editor must assign a task first.'
-            : currentUser?.role === 'admin'
-              ? 'No edits awaiting review. Editors submit changes for approval here.'
-              : 'No edits yet. Modify the map or click New draft to start.';
+    const emptyMessage = getEmptyMessage(currentUser?.role);
 
     return (
         <div className="p-4">
-            <div className="mb-3 flex items-center justify-between">
-                <h3 className="font-semibold">Edits</h3>
+            <div className="mb-4 flex items-center justify-between">
+                <div>
+                    <h3 className="text-sm font-semibold text-text">
+                        {variant === 'queue' ? 'Edits queue' : 'Edits'}
+                    </h3>
+                    {variant === 'queue' && (
+                        <p className="mt-0.5 text-xs text-text-muted">
+                            {currentUser?.role === 'admin' &&
+                                'Pending items need your review'}
+                            {currentUser?.role === 'editor' &&
+                                'Track drafts and submissions'}
+                            {currentUser?.role === 'operator' &&
+                                'Your assigned field tasks'}
+                        </p>
+                    )}
+                </div>
                 {currentUser?.role === 'editor' && (
                     <button
                         type="button"
@@ -54,14 +60,17 @@ export function EditsListPanel() {
                             const id = createDraftEdit();
                             setSelectedEdit(id);
                         }}
-                        className="rounded bg-primary px-2 py-1 text-xs text-white"
+                        className="rounded-lg bg-primary px-3 py-1.5 text-xs font-medium text-white hover:bg-primary-hover"
                     >
                         New draft
                     </button>
                 )}
             </div>
+
             {filtered.length === 0 ? (
-                <p className="text-sm text-text-muted">{emptyMessage}</p>
+                <div className="rounded-xl border border-dashed border-border p-6 text-center text-sm text-text-muted">
+                    {emptyMessage}
+                </div>
             ) : (
                 <ul className="space-y-2">
                     {filtered.map(edit => (
@@ -69,22 +78,31 @@ export function EditsListPanel() {
                             <button
                                 type="button"
                                 onClick={() => setSelectedEdit(edit.id)}
-                                className={`w-full rounded border px-3 py-2 text-left text-sm ${
+                                className={`w-full rounded-xl border px-4 py-3 text-left transition ${
                                     selectedEditId === edit.id
-                                        ? 'border-primary bg-primary/5'
-                                        : 'border-border hover:bg-surface-muted'
+                                        ? 'border-primary/40 bg-primary/5'
+                                        : 'border-border bg-surface-muted hover:border-border hover:bg-surface-raised'
                                 }`}
                             >
-                                <div className="flex justify-between">
-                                    <span className="font-medium">
-                                        {edit.id}
-                                    </span>
+                                <div className="flex items-start justify-between gap-2">
+                                    <div className="min-w-0">
+                                        <p className="truncate text-sm font-medium text-text">
+                                            {getEditTitle(edit)}
+                                        </p>
+                                        <p className="mt-1 text-xs text-text-muted">
+                                            {edit.changes.length} change(s) ·{' '}
+                                            {formatDate(edit.createdAt)}
+                                        </p>
+                                    </div>
                                     <StatusBadge status={edit.status} />
                                 </div>
-                                <p className="text-xs text-text-muted">
-                                    {edit.changes.length} change(s) ·{' '}
-                                    {new Date(edit.createdAt).toLocaleString()}
-                                </p>
+                                {variant === 'queue' &&
+                                    edit.status === 'pending_approval' &&
+                                    currentUser?.role === 'admin' && (
+                                        <p className="mt-2 text-xs text-primary">
+                                            → Open Thread / audit tab to review
+                                        </p>
+                                    )}
                             </button>
                         </li>
                     ))}
@@ -94,20 +112,21 @@ export function EditsListPanel() {
     );
 }
 
-function StatusBadge({ status }: { status: EditStatus }) {
-    const colors: Record<EditStatus, string> = {
-        draft: 'bg-slate-100 text-slate-700',
-        assigned: 'bg-blue-100 text-blue-700',
-        field_submitted: 'bg-indigo-100 text-indigo-700',
-        pending_approval: 'bg-amber-100 text-amber-800',
-        approved: 'bg-green-100 text-green-700',
-        rejected: 'bg-red-100 text-red-700',
-    };
-    return (
-        <span className={`rounded-full px-2 py-0.5 text-xs ${colors[status]}`}>
-            {STATUS_LABELS[status]}
-        </span>
-    );
+function getEmptyMessage(role?: string): string {
+    if (role === 'operator')
+        return 'No field tasks assigned yet. An editor must assign a task to you first.';
+    if (role === 'admin')
+        return 'No edits in the queue. Editors submit changes for your approval.';
+    return 'No edits yet. Modify the map to start a draft, or click New draft.';
+}
+
+function formatDate(iso: string): string {
+    return new Date(iso).toLocaleDateString(undefined, {
+        month: 'short',
+        day: 'numeric',
+        hour: '2-digit',
+        minute: '2-digit',
+    });
 }
 
 function filterEditsForRole(
@@ -123,14 +142,7 @@ function filterEditsForRole(
                     e.status === 'approved' ||
                     e.status === 'rejected'
             )
-            .sort((a, b) => {
-                if (a.status === 'pending_approval') return -1;
-                if (b.status === 'pending_approval') return 1;
-                return (
-                    new Date(b.createdAt).getTime() -
-                    new Date(a.createdAt).getTime()
-                );
-            });
+            .sort((a, b) => statusPriority(a.status) - statusPriority(b.status));
     }
     if (role === 'operator') {
         return edits.filter(
@@ -143,4 +155,10 @@ function filterEditsForRole(
         return edits.filter(e => e.createdBy === userId);
     }
     return edits;
+}
+
+function statusPriority(status: EditStatus): number {
+    if (status === 'pending_approval') return 0;
+    if (status === 'rejected') return 1;
+    return 2;
 }

@@ -3,6 +3,12 @@ import { SEED_USERS } from '../../data/seedUsers';
 import { ROUTES } from '../../routes/routePaths';
 import { useAppStore } from '../../store/useAppStore';
 
+const ROLE_HINTS: Record<string, string> = {
+    admin: 'Review pending edits and approve or reject changes',
+    editor: 'Edit the network map and submit changes for approval',
+    operator: 'Complete assigned field verification tasks',
+};
+
 export function LoginScreen() {
     const login = useAppStore(s => s.login);
     const navigate = useNavigate();
@@ -13,30 +19,58 @@ export function LoginScreen() {
     };
 
     return (
-        <div className="flex min-h-screen items-center justify-center bg-surface-muted p-4">
-            <div className="w-full max-w-md rounded-lg border border-border bg-surface p-6 shadow-sm">
-                <h1 className="mb-1 text-xl font-semibold text-primary">
-                    Water Network Editor
+        <div className="flex min-h-screen flex-col items-center justify-center bg-bg p-6">
+            <div className="mb-8 text-center">
+                <div className="mx-auto mb-4 flex h-12 w-12 items-center justify-center rounded-xl bg-primary/20 text-primary">
+                    <svg
+                        width="24"
+                        height="24"
+                        viewBox="0 0 24 24"
+                        fill="none"
+                        stroke="currentColor"
+                        strokeWidth="2"
+                    >
+                        <path d="M12 2L2 7l10 5 10-5-10-5z" />
+                        <path d="M2 17l10 5 10-5" />
+                        <path d="M2 12l10 5 10-5" />
+                    </svg>
+                </div>
+                <h1 className="text-2xl font-semibold text-text">
+                    Water network editor
                 </h1>
-                <p className="mb-6 text-sm text-text-muted">
-                    Select a user to log in. No password required.
+                <p className="mt-2 text-sm text-text-muted">
+                    Select a demo user to explore the approval workflow
                 </p>
-                <div className="space-y-2">
-                    {SEED_USERS.map(user => (
-                        <button
-                            key={user.id}
-                            type="button"
-                            onClick={() => handleLogin(user.id)}
-                            className="flex w-full items-center justify-between rounded border border-border px-4 py-3 text-left hover:bg-surface-muted"
-                        >
-                            <span className="font-medium">{user.name}</span>
-                            <span className="rounded-full bg-primary/10 px-2 py-0.5 text-xs capitalize text-primary">
+            </div>
+
+            <div className="w-full max-w-md space-y-3">
+                {SEED_USERS.map(user => (
+                    <button
+                        key={user.id}
+                        type="button"
+                        onClick={() => handleLogin(user.id)}
+                        className="group w-full rounded-xl border border-border bg-surface p-4 text-left transition hover:border-primary/40 hover:bg-surface-muted"
+                    >
+                        <div className="flex items-center justify-between">
+                            <div>
+                                <p className="font-medium text-text">
+                                    {user.name}
+                                </p>
+                                <p className="mt-0.5 text-xs text-text-muted">
+                                    {ROLE_HINTS[user.role]}
+                                </p>
+                            </div>
+                            <span className="rounded-full border border-border bg-surface-raised px-2.5 py-0.5 text-xs font-medium capitalize text-text-muted group-hover:border-primary/30 group-hover:text-primary">
                                 {user.role}
                             </span>
-                        </button>
-                    ))}
-                </div>
+                        </div>
+                    </button>
+                ))}
             </div>
+
+            <p className="mt-8 text-xs text-text-muted">
+                No password required — assignment demo only
+            </p>
         </div>
     );
 }

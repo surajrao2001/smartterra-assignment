@@ -1,12 +1,5 @@
 import type { PointElement } from '../../types/network';
 
-const TYPE_COLORS: Record<string, string> = {
-    junction: '#2563eb',
-    valve: '#7c3aed',
-    reservoir: '#059669',
-    tank: '#0891b2',
-};
-
 interface ElementMarkerProps {
     element: PointElement;
     projected: [number, number];
@@ -23,8 +16,17 @@ export function ElementMarker({
     onSelect,
 }: ElementMarkerProps) {
     const [x, y] = projected;
-    const color = TYPE_COLORS[element.type] ?? '#64748b';
-    const r = selected ? 9 : 7;
+    const isValve = element.type === 'valve';
+    const isReservoir = element.type === 'reservoir';
+
+    let fill = '#64748b';
+    if (selected) fill = '#4d9fff';
+    else if (pending) fill = '#fb923c';
+    else if (isReservoir) fill = '#4d9fff';
+
+    const label = pending
+        ? `${element.id} (new, pending)`
+        : element.id;
 
     return (
         <g
@@ -38,29 +40,39 @@ export function ElementMarker({
                 <circle
                     cx={x}
                     cy={y}
-                    r={r + 4}
+                    r={12}
                     fill="none"
-                    stroke="#f59e0b"
-                    strokeWidth={2}
+                    stroke="#fb923c"
+                    strokeWidth={1.5}
                     strokeDasharray="3 2"
                 />
             )}
-            <circle
-                cx={x}
-                cy={y}
-                r={r}
-                fill={color}
-                stroke={selected ? '#0f172a' : '#fff'}
-                strokeWidth={selected ? 2 : 1.5}
-            />
+            {isValve ? (
+                <polygon
+                    points={`${x},${y - 8} ${x + 8},${y} ${x},${y + 8} ${x - 8},${y}`}
+                    fill={fill}
+                    stroke={selected ? '#fff' : '#2a3040'}
+                    strokeWidth={1.5}
+                />
+            ) : (
+                <circle
+                    cx={x}
+                    cy={y}
+                    r={selected ? 9 : 7}
+                    fill={fill}
+                    stroke={selected ? '#fff' : '#2a3040'}
+                    strokeWidth={1.5}
+                />
+            )}
             <text
                 x={x}
-                y={y - 12}
+                y={y - 14}
                 textAnchor="middle"
                 fontSize={10}
-                fill="#475569"
+                fontWeight={500}
+                fill={pending ? '#fb923c' : '#8b95a8'}
             >
-                {element.id}
+                {label}
             </text>
         </g>
     );

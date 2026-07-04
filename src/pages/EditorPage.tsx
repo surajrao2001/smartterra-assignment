@@ -1,105 +1,61 @@
 import { useState } from 'react';
-import { useNavigate } from 'react-router-dom';
+import { AppHeader } from '../components/layout/AppHeader';
 import { NetworkCanvas } from '../components/map/NetworkCanvas';
 import { EditDetailPanel } from '../components/panels/EditDetailPanel';
 import { EditsListPanel } from '../components/panels/EditsListPanel';
 import { ElementPropertiesPanel } from '../components/panels/ElementPropertiesPanel';
-import { useAppStore } from '../store/useAppStore';
-import { ROUTES } from '../routes/routePaths';
 
-type Tab = 'properties' | 'edits' | 'detail';
+type Tab = 'properties' | 'edits' | 'thread';
+
+const TABS: { id: Tab; label: string }[] = [
+    { id: 'properties', label: 'Properties' },
+    { id: 'edits', label: 'Edits queue' },
+    { id: 'thread', label: 'Thread / audit' },
+];
 
 export function EditorPage() {
-    const currentUser = useAppStore(s => s.currentUser);
-    const logout = useAppStore(s => s.logout);
-    const showPendingOverlay = useAppStore(s => s.showPendingOverlay);
-    const togglePendingOverlay = useAppStore(s => s.togglePendingOverlay);
-    const navigate = useNavigate();
+    const [tab, setTab] = useState<Tab>('properties');
+    const [showAddForm, setShowAddForm] = useState(false);
 
-    const defaultTab: Tab =
-        currentUser?.role === 'operator'
-            ? 'edits'
-            : currentUser?.role === 'admin'
-              ? 'edits'
-              : 'properties';
-    const [tab, setTab] = useState<Tab>(defaultTab);
-
-    const handleLogout = () => {
-        logout();
-        navigate(ROUTES.LOGIN, { replace: true });
+    const openAddElement = () => {
+        setTab('properties');
+        setShowAddForm(true);
     };
 
-    if (!currentUser) return null;
-
     return (
-        <div className="flex h-screen flex-col bg-surface text-text">
-            <header className="flex items-center justify-between border-b border-border bg-surface-muted px-4 py-3">
-                <div>
-                    <h1 className="text-lg font-semibold text-primary">
-                        Water Network Editor
-                    </h1>
-                    <p className="text-sm text-text-muted">
-                        {currentUser.role === 'admin' &&
-                            'Review pending edits and approve or reject'}
-                        {currentUser.role === 'editor' &&
-                            'Edit network elements and submit changes for approval'}
-                        {currentUser.role === 'operator' &&
-                            'Complete assigned field verification tasks'}
-                    </p>
+        <div className="flex h-screen flex-col bg-bg text-text">
+            <AppHeader />
+            <div className="flex min-h-0 flex-1">
+                <div className="flex min-w-0 flex-1 flex-col">
+                    <NetworkCanvas onAddElement={openAddElement} />
                 </div>
-                <div className="flex items-center gap-3">
-                    <label className="flex items-center gap-1 text-sm">
-                        <input
-                            type="checkbox"
-                            checked={showPendingOverlay}
-                            onChange={togglePendingOverlay}
-                        />
-                        Pending overlay
-                    </label>
-                    <span className="text-sm">{currentUser.name}</span>
-                    <span className="rounded-full bg-primary/10 px-2 py-0.5 text-xs font-medium capitalize text-primary">
-                        {currentUser.role}
-                    </span>
-                    <button
-                        type="button"
-                        onClick={handleLogout}
-                        className="rounded border border-border px-3 py-1 text-sm hover:bg-surface-muted"
-                    >
-                        Logout
-                    </button>
-                </div>
-            </header>
-            <div className="flex flex-1 overflow-hidden">
-                <div className="flex-1 border-r border-border">
-                    <NetworkCanvas />
-                </div>
-                <aside className="flex w-96 flex-col border-l border-border bg-surface">
-                    <nav className="flex border-b border-border">
-                        {(
-                            [
-                                ['properties', 'Properties'],
-                                ['edits', 'Edits'],
-                                ['detail', 'Detail'],
-                            ] as const
-                        ).map(([key, label]) => (
+                <aside className="flex w-[380px] shrink-0 flex-col border-l border-border bg-surface">
+                    <nav className="flex shrink-0 border-b border-border">
+                        {TABS.map(({ id, label }) => (
                             <button
-                                key={key}
+                                key={id}
                                 type="button"
-                                onClick={() => setTab(key)}
-                                className={`flex-1 px-3 py-2 text-sm ${
-                                    tab === key
-                                        ? 'border-b-2 border-primary font-medium text-primary'
-                                        : 'text-text-muted hover:bg-surface-muted'
+                                onClick={() => setTab(id)}
+                                className={`flex-1 px-2 py-3 text-xs font-medium transition ${
+                                    tab === id
+                                        ? 'border-b-2 border-primary text-primary'
+                                        : 'text-text-muted hover:text-text'
                                 }`}
                             >
                                 {label}
                             </button>
                         ))}
                     </nav>
-                    <div className="flex-1 overflow-y-auto">
-                        {tab === 'properties' && <ElementPropertiesPanel />}
-                        {tab === 'edits' && <EditsListPanel />}
-                        {tab === 'detail' && <EditDetailPanel />}
+                    <div className="min-h-0 flex-1 overflow-y-auto">
+                        {tab === 'properties' && (
+                            <ElementPropertiesPanel
+                                showAddForm={showAddForm}
+                                onAddFormClose={() => setShowAddForm(false)}
+                                onSelectEdit={() => setTab('thread')}
+                            />
+                        )}
+                        {tab === 'edits' && <EditsListPanel variant="queue" />}
+                        {tab === 'thread' && <EditDetailPanel />}
                     </div>
                 </aside>
             </div>

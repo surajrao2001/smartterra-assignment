@@ -11,10 +11,15 @@ import { isPipe, isPointElement } from '../../types/network';
 import { ElementMarker } from './ElementMarker';
 import { PipeLine } from './PipeLine';
 
-export function NetworkCanvas() {
+interface NetworkCanvasProps {
+    onAddElement?: () => void;
+}
+
+export function NetworkCanvas({ onAddElement }: NetworkCanvasProps) {
     const publishedNetwork = useAppStore(s => s.publishedNetwork);
     const selectedElementId = useAppStore(s => s.selectedElementId);
     const showPendingOverlay = useAppStore(s => s.showPendingOverlay);
+    const togglePendingOverlay = useAppStore(s => s.togglePendingOverlay);
     const setSelectedElement = useAppStore(s => s.setSelectedElement);
     const getOrCreateActiveDraft = useAppStore(s => s.getOrCreateActiveDraft);
     const insertJunctionOnPipe = useAppStore(s => s.insertJunctionOnPipe);
@@ -37,9 +42,7 @@ export function NetworkCanvas() {
 
     const pendingElementIds = useMemo(() => {
         const ids = new Set<string>();
-        for (const c of pendingChanges) {
-            ids.add(c.elementId);
-        }
+        for (const c of pendingChanges) ids.add(c.elementId);
         return ids;
     }, [pendingChanges]);
 
@@ -56,7 +59,6 @@ export function NetworkCanvas() {
         pt.x = e.clientX;
         pt.y = e.clientY;
         const svgPt = pt.matrixTransform(svg.getScreenCTM()?.inverse());
-
         const clickLngLat = projection.invert([svgPt.x, svgPt.y]);
 
         let nearestPipe: { id: string; dist: number } | null = null;
@@ -66,7 +68,7 @@ export function NetworkCanvas() {
             const pa = projection.project(a);
             const pb = projection.project(b);
             const dist = pointToSegmentDist([svgPt.x, svgPt.y], pa, pb);
-            if (dist < 10 && (!nearestPipe || dist < nearestPipe.dist)) {
+            if (dist < 12 && (!nearestPipe || dist < nearestPipe.dist)) {
                 nearestPipe = { id: el.id, dist };
             }
         }
@@ -83,50 +85,85 @@ export function NetworkCanvas() {
         setInsertMode(false);
     };
 
+    const draftChangeCount = activeEdit?.changes.length ?? 0;
+
     return (
-        <div className="relative flex h-full flex-col">
-            {canEdit && (
-                <div className="flex gap-2 border-b border-border bg-surface-muted p-2">
-                    <button
-                        type="button"
-                        onClick={() => setInsertMode(m => !m)}
-                        className={`rounded px-3 py-1 text-sm ${
-                            insertMode
-                                ? 'bg-primary text-white'
-                                : 'border border-border hover:bg-surface'
-                        }`}
-                    >
-                        {insertMode
-                            ? 'Click pipe to insert junction…'
-                            : 'Insert junction on pipe'}
-                    </button>
+        <div className="flex h-full flex-col">
+            <div className="flex shrink-0 items-center justify-between border-b border-border bg-surface px-4 py-2.5">
+                <div className="flex items-center gap-3">
+                    <span className="text-sm font-medium text-text">
+                        Published network
+                    </span>
+                    <span className="text-xs text-text-muted">
+                        Vancouver open data (filtered bbox)
+                    </span>
+                    <label className="flex cursor-pointer items-center gap-1.5 text-xs text-text-muted">
+                        <input
+                            type="checkbox"
+                            checked={showPendingOverlay}
+                            onChange={togglePendingOverlay}
+                            className="rounded border-border"
+                        />
+                        Show pending overlay
+                    </label>
                 </div>
-            )}
-            <svg
-                viewBox={projection.viewBox}
-                className="h-full w-full bg-surface"
-                onClick={handleCanvasClick}
-            >
-                {Object.values(displayNetwork.elements).map(el => {
-                    if (isPipe(el)) {
-                        const coords = el.coordinates.map(c =>
-                            projection.project(c)
-                        );
+                <div className="flex items-center gap-2">
+                    {canEdit && (
+                        <>
+                            <button
+                                type="button"
+                                onClick={() => setInsertMode(m => !m)}
+                                className={`rounded-lg border px-3 py-1.5 text-xs font-medium transition ${
+                                    insertMode
+                                        ? 'border-primary bg-primary/10 text-primary'
+                                        : 'border-border text-text-muted hover:border-border hover:text-text'
+                                }`}
+                            >
+                                {insertMode
+                                    ? 'Click a pipe…'
+                                    : 'Split pipe'}
+                            </button>
+                            <button
+                                type="button"
+                                onClick={onAddElement}
+                                className="rounded-lg border border-border px-3 py-1.5 text-xs font-medium text-text transition hover:bg-surface-muted"
+                            >
+                                Add element
+                            </button>
+                        </>
+                    )}
+                    {canEdit && activeEdit && draftChangeCount > 0 && (
+                        <span className="rounded-lg bg-primary px-3 py-1.5 text-xs font-medium text-white">
+                            Draft edit · {draftChangeCount} change
+                            {draftChangeCount !== 1 ? 's' : ''}
+                        </span>
+                    )}
+                </div>
+            </div>
+
+            <div className="relative min-h-0 flex-1 bg-map-bg">
+                <svg
+                    viewBox={projection.viewBox}
+                    className="h-full w-full"
+                    onClick={handleCanvasClick}
+                >
+                    {Object.values(displayNetwork.elements).map(el => {
+                        if (!isPipe(el)) return null;
                         return (
                             <PipeLine
                                 key={el.id}
                                 pipe={el}
-                                projectedCoords={coords}
+                                projectedCoords={el.coordinates.map(c =>
+                                    projection.project(c)
+                                )}
                                 selected={selectedElementId === el.id}
                                 pending={pendingElementIds.has(el.id)}
                                 onSelect={setSelectedElement}
                             />
                         );
-                    }
-                    return null;
-                })}
-                {Object.values(displayNetwork.elements).map(el => {
-                    if (isPointElement(el)) {
+                    })}
+                    {Object.values(displayNetwork.elements).map(el => {
+                        if (!isPointElement(el)) return null;
                         return (
                             <ElementMarker
                                 key={el.id}
@@ -137,10 +174,24 @@ export function NetworkCanvas() {
                                 onSelect={setSelectedElement}
                             />
                         );
-                    }
-                    return null;
-                })}
-            </svg>
+                    })}
+                </svg>
+            </div>
+
+            <div className="flex shrink-0 items-center gap-5 border-t border-border bg-surface px-4 py-2 text-xs text-text-muted">
+                <span className="flex items-center gap-1.5">
+                    <span className="inline-block h-0.5 w-5 rounded bg-primary" />
+                    Selected pipe
+                </span>
+                <span className="flex items-center gap-1.5">
+                    <span className="inline-block h-0.5 w-5 rounded border border-dashed border-pending bg-pending/30" />
+                    Pending change (unpublished)
+                </span>
+                <span className="flex items-center gap-1.5">
+                    <span className="inline-block h-2 w-2 rounded-full bg-text-muted/50" />
+                    Published element
+                </span>
+            </div>
         </div>
     );
 }
