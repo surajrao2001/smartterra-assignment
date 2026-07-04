@@ -1,11 +1,16 @@
-import type { Pipe } from '../../types/network';
+import type { PropertyChange } from '../../types/edit';
 
 interface PipeLineProps {
-    pipe: Pipe;
+    pipe: { id: string; status: string };
     projectedCoords: [number, number][];
     selected: boolean;
     pending?: boolean;
+    insertMode?: boolean;
     onSelect: (id: string) => void;
+    onSplitClick?: (
+        pipeId: string,
+        e: React.MouseEvent<SVGPolylineElement>
+    ) => void;
 }
 
 export function PipeLine({
@@ -13,7 +18,9 @@ export function PipeLine({
     projectedCoords,
     selected,
     pending = false,
+    insertMode = false,
     onSelect,
+    onSplitClick,
 }: PipeLineProps) {
     const points = projectedCoords.map(c => c.join(',')).join(' ');
     const mid = projectedCoords[0]
@@ -23,19 +30,19 @@ export function PipeLine({
           ]
         : null;
 
-    let stroke = '#4a5568';
+    let stroke = 'var(--theme-pipe-default)';
     let strokeWidth = 2.5;
     let dashArray: string | undefined;
 
     if (selected) {
-        stroke = '#4d9fff';
-        strokeWidth = 3.5;
+        stroke = 'var(--theme-primary)';
+        strokeWidth = 3;
     } else if (pending) {
-        stroke = '#fb923c';
+        stroke = 'var(--theme-pending)';
         strokeWidth = 2.5;
-        dashArray = '6 4';
+        dashArray = '6 5';
     } else if (pipe.status === 'closed') {
-        stroke = '#64748b';
+        stroke = 'var(--theme-node-default)';
         dashArray = '4 4';
     }
 
@@ -45,10 +52,14 @@ export function PipeLine({
                 points={points}
                 fill="none"
                 stroke="transparent"
-                strokeWidth={14}
-                style={{ cursor: 'pointer' }}
+                strokeWidth={16}
+                style={{ cursor: insertMode ? 'crosshair' : 'pointer' }}
                 onClick={e => {
                     e.stopPropagation();
+                    if (insertMode && onSplitClick) {
+                        onSplitClick(pipe.id, e);
+                        return;
+                    }
                     onSelect(pipe.id);
                 }}
             />
@@ -64,15 +75,23 @@ export function PipeLine({
             {selected && mid && (
                 <text
                     x={mid[0]}
-                    y={mid[1] - 8}
+                    y={mid[1] - 10}
                     textAnchor="middle"
                     fontSize={11}
                     fontWeight={500}
-                    fill="#4d9fff"
+                    fill="var(--theme-primary)"
                 >
                     {pipe.id} selected
                 </text>
             )}
         </g>
     );
+}
+
+export function buildPendingChangeMap(
+    changes: PropertyChange[]
+): Map<string, PropertyChange['changeType']> {
+    const map = new Map<string, PropertyChange['changeType']>();
+    for (const c of changes) map.set(c.elementId, c.changeType);
+    return map;
 }

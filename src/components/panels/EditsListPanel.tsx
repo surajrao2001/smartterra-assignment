@@ -36,7 +36,7 @@ export function EditsListPanel({ variant = 'compact' }: EditsListPanelProps) {
     const emptyMessage = getEmptyMessage(currentUser?.role);
 
     return (
-        <div className="p-4">
+        <div className="p-6">
             <div className="mb-4 flex items-center justify-between">
                 <div>
                     <h3 className="text-sm font-semibold text-text">
