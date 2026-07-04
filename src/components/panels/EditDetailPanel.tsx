@@ -1,4 +1,5 @@
 import { SEED_USERS } from '../../data/seedUsers';
+import type { PropertyChange } from '../../types/edit';
 import { Guard } from '../layout/Guard';
 import { StatusBadge } from '../ui/StatusBadge';
 import { useAppStore } from '../../store/useAppStore';
@@ -32,7 +33,7 @@ export function EditDetailPanel() {
     const creator = SEED_USERS.find(u => u.id === edit.createdBy);
 
     return (
-        <div className="space-y-4 p-4">
+        <div className="space-y-4 p-6">
             <section className="rounded-xl border border-border bg-surface-muted p-4">
                 <div className="flex items-start justify-between gap-2">
                     <div>
@@ -53,9 +54,13 @@ export function EditDetailPanel() {
             </section>
 
             <section className="rounded-xl border border-border bg-surface-muted p-4">
-                <h4 className="mb-3 text-xs font-semibold uppercase tracking-wide text-text-muted">
+                <h4 className="mb-1 text-xs font-semibold uppercase tracking-wide text-text-muted">
                     Proposed changes
                 </h4>
+                <p className="mb-3 text-xs text-text-muted">
+                    What the editor wants to publish — not live until you
+                    approve.
+                </p>
                 {edit.changes.length === 0 ? (
                     <p className="text-sm text-text-muted">No changes yet.</p>
                 ) : (
@@ -65,20 +70,7 @@ export function EditDetailPanel() {
                                 key={`${c.elementId}-${i}`}
                                 className="rounded-lg border border-border bg-surface-raised px-3 py-2 text-sm"
                             >
-                                <span className="font-medium capitalize text-text">
-                                    {c.changeType}
-                                </span>{' '}
-                                <span className="text-text-muted">
-                                    {c.elementId}
-                                </span>
-                                {c.changeType === 'modify' &&
-                                    c.before &&
-                                    c.after && (
-                                        <DiffSnippet
-                                            before={c.before}
-                                            after={c.after}
-                                        />
-                                    )}
+                                <ChangeSummary change={c} />
                             </li>
                         ))}
                     </ul>
@@ -166,6 +158,51 @@ export function EditDetailPanel() {
 
             <ThreadPanel editId={edit.id} />
             <AuditTrailPanel edit={edit} />
+        </div>
+    );
+}
+
+function ChangeSummary({ change }: { change: PropertyChange }) {
+    const typeLabel = change.after?.type ?? change.before?.type ?? 'element';
+
+    if (change.changeType === 'add' && change.after) {
+        const detail =
+            change.after.type === 'pipe'
+                ? `${String(change.after.start)} → ${String(change.after.end)}`
+                : null;
+        return (
+            <div>
+                <span className="font-medium capitalize text-success">
+                    Add
+                </span>{' '}
+                <span className="text-text">
+                    {typeLabel} {change.elementId}
+                </span>
+                {detail && (
+                    <p className="mt-1 text-xs text-text-muted">{detail}</p>
+                )}
+            </div>
+        );
+    }
+
+    if (change.changeType === 'delete') {
+        return (
+            <div>
+                <span className="font-medium capitalize text-danger">
+                    Delete
+                </span>{' '}
+                <span className="text-text">{change.elementId}</span>
+            </div>
+        );
+    }
+
+    return (
+        <div>
+            <span className="font-medium capitalize text-warning">Modify</span>{' '}
+            <span className="text-text">{change.elementId}</span>
+            {change.before && change.after && (
+                <DiffSnippet before={change.before} after={change.after} />
+            )}
         </div>
     );
 }
