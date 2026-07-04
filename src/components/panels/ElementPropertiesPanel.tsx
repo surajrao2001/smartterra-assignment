@@ -1,8 +1,9 @@
 import { useState } from 'react';
-import { nanoid } from 'nanoid';
+import type { AddElementMode, AddElementType } from '../../utils/elementFactory';
+import { getAddElementHint } from '../../utils/elementFactory';
 import { useActiveEdit } from '../../hooks/useActiveEdit';
 import { useCan } from '../../hooks/useCan';
-import { StatusBadge } from '../ui/StatusBadge';
+import { ElementStatusBadge, StatusBadge } from '../ui/StatusBadge';
 import { useAppStore } from '../../store/useAppStore';
 import { getEffectiveNetwork } from '../../store/networkOps';
 import { getEditTitle } from '../../utils/editSummary';
@@ -12,12 +13,16 @@ import { FieldTaskForm } from './FieldTaskForm';
 
 interface ElementPropertiesPanelProps {
     showAddForm?: boolean;
+    addElementMode?: AddElementMode | null;
+    onAddElementModeChange?: (mode: AddElementMode | null) => void;
     onAddFormClose?: () => void;
     onSelectEdit?: () => void;
 }
 
 export function ElementPropertiesPanel({
     showAddForm = false,
+    addElementMode = null,
+    onAddElementModeChange,
     onAddFormClose,
     onSelectEdit,
 }: ElementPropertiesPanelProps) {
@@ -30,7 +35,6 @@ export function ElementPropertiesPanel({
     const getOrCreateActiveDraft = useAppStore(s => s.getOrCreateActiveDraft);
     const modifyElementInEdit = useAppStore(s => s.modifyElementInEdit);
     const deleteElementInEdit = useAppStore(s => s.deleteElementInEdit);
-    const addElementToEdit = useAppStore(s => s.addElementToEdit);
     const submitForApproval = useAppStore(s => s.submitForApproval);
     const activeEdit = useActiveEdit();
 
@@ -43,8 +47,8 @@ export function ElementPropertiesPanel({
         ? effective.elements[selectedElementId]
         : null;
 
-    const [addType, setAddType] = useState<'junction' | 'valve' | 'pipe'>(
-        'junction'
+    const [addType, setAddType] = useState<AddElementType>(
+        addElementMode?.type ?? 'junction'
     );
     const [showAssignForm, setShowAssignForm] = useState(false);
 
@@ -72,14 +76,18 @@ export function ElementPropertiesPanel({
         } as Partial<NetworkElement>);
     };
 
+    const elementTitle = element
+        ? `${element.type.charAt(0).toUpperCase()}${element.type.slice(1)} ${element.id}`
+        : null;
+
     return (
-        <div className="space-y-4 p-4">
+        <div className="space-y-6 p-6">
             {element ? (
-                <section className="rounded-xl border border-border bg-surface-muted p-4">
+                <section>
                     <div className="mb-4 flex items-center justify-between">
-                        <h3 className="text-sm font-semibold capitalize text-text">
-                            {element.type} {element.id}
-                        </h3>
+                        <h2 className="text-lg font-semibold text-text">
+                            {elementTitle}
+                        </h2>
                         {canAddRemove && (
                             <button
                                 type="button"
@@ -104,35 +112,34 @@ export function ElementPropertiesPanel({
                     />
                 </section>
             ) : (
-                <section className="rounded-xl border border-dashed border-border bg-surface-muted/50 p-4 text-center">
+                <section className="rounded-xl border border-dashed border-border py-10 text-center">
                     <p className="text-sm text-text-muted">
-                        Click any junction, pipe, valve, or reservoir on the map
-                        to inspect and edit its properties.
+                        Click any junction, pipe, valve, or reservoir on the
+                        map to inspect and edit its properties.
                     </p>
                 </section>
             )}
 
-            {showAddForm && canAddRemove && (
+            {showAddForm && canAddRemove && addElementMode && (
                 <AddElementForm
                     addType={addType}
-                    setAddType={setAddType}
-                    onAdd={el => {
-                        const editId = getOrCreateActiveDraft();
-                        if (editId) addElementToEdit(editId, el);
-                        onAddFormClose?.();
+                    addElementMode={addElementMode}
+                    setAddType={type => {
+                        setAddType(type);
+                        onAddElementModeChange?.({ type });
                     }}
                     onCancel={onAddFormClose}
                 />
             )}
 
             {canEdit && activeEdit && (
-                <section className="rounded-xl border border-border bg-surface-muted p-4">
-                    <div className="mb-3 flex items-start justify-between gap-2">
+                <section className="border-t border-border pt-6">
+                    <div className="mb-4 flex items-start justify-between gap-3">
                         <div>
-                            <h4 className="text-xs font-semibold uppercase tracking-wide text-text-muted">
+                            <h3 className="text-sm font-semibold text-text">
                                 Current draft edit
-                            </h4>
-                            <p className="mt-1 text-sm text-text">
+                            </h3>
+                            <p className="mt-1 text-sm text-text-muted">
                                 {getEditTitle(activeEdit)}
                             </p>
                         </div>
@@ -140,14 +147,30 @@ export function ElementPropertiesPanel({
                     </div>
 
                     {['draft', 'rejected'].includes(activeEdit.status) && (
-                        <div className="flex flex-wrap gap-2">
+                        <div className="flex gap-2">
                             <button
                                 type="button"
                                 onClick={() =>
                                     setShowAssignForm(!showAssignForm)
                                 }
-                                className="flex-1 rounded-lg border border-border px-3 py-2 text-xs font-medium text-text transition hover:bg-surface-raised"
+                                className="flex flex-1 items-center justify-center gap-1.5 rounded-lg border border-border px-3 py-2.5 text-sm font-medium text-text transition hover:bg-surface-muted"
                             >
+                                <svg
+                                    width="14"
+                                    height="14"
+                                    viewBox="0 0 24 24"
+                                    fill="none"
+                                    stroke="currentColor"
+                                    strokeWidth="2"
+                                >
+                                    <rect
+                                        x="3"
+                                        y="3"
+                                        width="18"
+                                        height="18"
+                                        rx="2"
+                                    />
+                                </svg>
                                 Assign to operator
                             </button>
                             <button
@@ -156,7 +179,7 @@ export function ElementPropertiesPanel({
                                     submitForApproval(activeEdit.id)
                                 }
                                 disabled={activeEdit.changes.length === 0}
-                                className="flex-1 rounded-lg bg-primary px-3 py-2 text-xs font-medium text-white transition hover:bg-primary-hover disabled:opacity-40"
+                                className="flex-1 rounded-lg bg-primary px-3 py-2.5 text-sm font-medium text-white transition hover:bg-primary-hover disabled:opacity-40"
                             >
                                 Submit for approval
                             </button>
@@ -177,10 +200,10 @@ export function ElementPropertiesPanel({
             )}
 
             {otherEdits.length > 0 && (
-                <section>
-                    <h4 className="mb-2 text-xs font-semibold uppercase tracking-wide text-text-muted">
+                <section className="border-t border-border pt-6">
+                    <h3 className="mb-3 text-sm font-semibold text-text">
                         Other edits
-                    </h4>
+                    </h3>
                     <ul className="space-y-2">
                         {otherEdits.map(edit => (
                             <OtherEditRow
@@ -213,10 +236,10 @@ function OtherEditRow({
         <button
             type="button"
             onClick={onSelect}
-            className={`flex w-full items-center justify-between gap-2 rounded-lg border px-3 py-2.5 text-left transition ${
+            className={`flex w-full items-center justify-between gap-3 rounded-lg border px-4 py-3 text-left transition ${
                 selected
                     ? 'border-primary/40 bg-primary/5'
-                    : 'border-border bg-surface-muted hover:border-border hover:bg-surface-raised'
+                    : 'border-border bg-surface-muted hover:bg-surface-raised'
             }`}
         >
             <span className="truncate text-sm text-text">
@@ -242,6 +265,7 @@ function PropertyFields({
         value: string | number;
         suffix?: string;
         readOnly?: boolean;
+        isStatus?: boolean;
     }[] = [];
 
     if (element.type === 'junction') {
@@ -265,12 +289,18 @@ function PropertyFields({
                 key: 'status',
                 label: 'Status',
                 value: element.status,
+                isStatus: true,
                 readOnly: !editable,
             }
         );
     } else if (element.type === 'pipe') {
         fields.push(
-            { key: 'start', label: 'Start', value: element.start, readOnly: true },
+            {
+                key: 'start',
+                label: 'Start',
+                value: element.start,
+                readOnly: true,
+            },
             { key: 'end', label: 'End', value: element.end, readOnly: true },
             {
                 key: 'diameter',
@@ -283,80 +313,71 @@ function PropertyFields({
                 key: 'status',
                 label: 'Status',
                 value: element.status,
+                isStatus: true,
                 readOnly: !editable,
             }
         );
     }
 
     return (
-        <dl className="space-y-3">
+        <div className="divide-y divide-border">
             {fields.map(f => (
-                <div key={f.key}>
-                    <dt className="mb-1 text-xs text-text-muted">{f.label}</dt>
-                    <dd>
-                        {editable && !f.readOnly && f.key !== 'start' && f.key !== 'end' ? (
-                            <input
-                                className="w-full rounded-lg border border-border bg-surface-raised px-3 py-2 text-sm text-text outline-none focus:border-primary"
-                                value={f.value}
-                                onChange={e =>
-                                    onChange(
-                                        f.key,
-                                        typeof f.value === 'number'
-                                            ? Number(e.target.value)
-                                            : e.target.value
-                                    )
-                                }
-                            />
-                        ) : f.key === 'status' ? (
-                            <span
-                                className={`text-sm font-medium capitalize ${
-                                    String(f.value) === 'open' ||
-                                    String(f.value) === 'active'
-                                        ? 'text-success'
-                                        : 'text-text-muted'
-                                }`}
-                            >
-                                {String(f.value)}
-                            </span>
-                        ) : (
-                            <span className="text-sm text-text">
-                                {f.value}
-                                {f.suffix ? ` ${f.suffix}` : ''}
-                            </span>
-                        )}
-                    </dd>
+                <div
+                    key={f.key}
+                    className="flex items-center justify-between gap-4 py-3"
+                >
+                    <span className="text-sm text-text-muted">{f.label}</span>
+                    {f.isStatus ? (
+                        <ElementStatusBadge status={String(f.value)} />
+                    ) : editable &&
+                      !f.readOnly &&
+                      f.key !== 'start' &&
+                      f.key !== 'end' ? (
+                        <input
+                            className="w-28 rounded-lg border border-border bg-surface-muted px-3 py-1.5 text-right text-sm text-text outline-none focus:border-primary"
+                            value={f.value}
+                            onChange={e =>
+                                onChange(
+                                    f.key,
+                                    typeof f.value === 'number'
+                                        ? Number(e.target.value)
+                                        : e.target.value
+                                )
+                            }
+                        />
+                    ) : (
+                        <span className="text-sm font-medium text-text">
+                            {f.value}
+                            {f.suffix ? ` ${f.suffix}` : ''}
+                        </span>
+                    )}
                 </div>
             ))}
-        </dl>
+        </div>
     );
 }
 
 function AddElementForm({
     addType,
+    addElementMode,
     setAddType,
-    onAdd,
     onCancel,
 }: {
-    addType: 'junction' | 'valve' | 'pipe';
-    setAddType: (t: 'junction' | 'valve' | 'pipe') => void;
-    onAdd: (el: NetworkElement) => void;
+    addType: AddElementType;
+    addElementMode: AddElementMode;
+    setAddType: (t: AddElementType) => void;
     onCancel?: () => void;
 }) {
-    const [start, setStart] = useState('J1');
-    const [end, setEnd] = useState('J2');
-
     return (
-        <section className="rounded-xl border border-border bg-surface-muted p-4">
-            <h4 className="mb-3 text-xs font-semibold uppercase tracking-wide text-text-muted">
+        <section className="rounded-xl border border-primary/30 bg-primary/5 p-4">
+            <h4 className="mb-3 text-sm font-semibold text-text">
                 Add new element
             </h4>
-            <div className="space-y-2">
+            <div className="space-y-3">
                 <select
                     value={addType}
                     onChange={e =>
-                        setAddType(
-                            e.target.value as 'junction' | 'valve' | 'pipe'
-                        )
+                        setAddType(e.target.value as AddElementType)
                     }
                     className="w-full rounded-lg border border-border bg-surface-raised px-3 py-2 text-sm text-text"
                 >
@@ -364,73 +385,26 @@ function AddElementForm({
                     <option value="valve">Valve</option>
                     <option value="pipe">Pipe</option>
                 </select>
-                {addType === 'pipe' && (
-                    <div className="flex gap-2">
-                        <input
-                            className="flex-1 rounded-lg border border-border bg-surface-raised px-3 py-2 text-sm"
-                            placeholder="Start ID"
-                            value={start}
-                            onChange={e => setStart(e.target.value)}
-                        />
-                        <input
-                            className="flex-1 rounded-lg border border-border bg-surface-raised px-3 py-2 text-sm"
-                            placeholder="End ID"
-                            value={end}
-                            onChange={e => setEnd(e.target.value)}
-                        />
-                    </div>
-                )}
-                <div className="flex gap-2">
+                <p className="text-sm text-primary">
+                    {getAddElementHint(addElementMode)}
+                </p>
+                <p className="text-xs text-text-muted">
+                    New IDs are auto-generated as{' '}
+                    <code className="text-text">J-xxxxxx</code>,{' '}
+                    <code className="text-text">V-xxxxxx</code>, or{' '}
+                    <code className="text-text">P-xxxxxx</code> (6 random
+                    characters). Changes stay in your draft until admin
+                    approves.
+                </p>
+                {onCancel && (
                     <button
                         type="button"
-                        className="flex-1 rounded-lg bg-primary py-2 text-sm font-medium text-white hover:bg-primary-hover"
-                        onClick={() => {
-                            const id = `${addType === 'pipe' ? 'P' : addType === 'valve' ? 'V' : 'J'}-${nanoid(4)}`;
-                            if (addType === 'junction') {
-                                onAdd({
-                                    id,
-                                    type: 'junction',
-                                    coordinates: [77.595, 12.972],
-                                    elevation: 200,
-                                    demand: 0,
-                                });
-                            } else if (addType === 'valve') {
-                                onAdd({
-                                    id,
-                                    type: 'valve',
-                                    coordinates: [77.595, 12.972],
-                                    valveType: 'PRV',
-                                    diameter: 200,
-                                    setting: 30,
-                                    status: 'active',
-                                });
-                            } else {
-                                onAdd({
-                                    id,
-                                    type: 'pipe',
-                                    start,
-                                    end,
-                                    length: 200,
-                                    diameter: 250,
-                                    roughness: 130,
-                                    status: 'open',
-                                    coordinates: [],
-                                });
-                            }
-                        }}
+                        onClick={onCancel}
+                        className="w-full rounded-lg border border-border px-4 py-2 text-sm text-text-muted hover:bg-surface-muted"
                     >
-                        Create {addType}
+                        Cancel
                     </button>
-                    {onCancel && (
-                        <button
-                            type="button"
-                            onClick={onCancel}
-                            className="rounded-lg border border-border px-4 py-2 text-sm text-text-muted"
-                        >
-                            Cancel
-                        </button>
-                    )}
-                </div>
+                )}
             </div>
         </section>
     );

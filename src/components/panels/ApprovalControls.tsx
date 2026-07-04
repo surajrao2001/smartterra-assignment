@@ -20,7 +20,7 @@ export function ApprovalControls({ editId }: { editId: string }) {
                 <button
                     type="button"
                     onClick={() => approveEdit(editId)}
-                    className="flex-1 rounded-lg bg-success py-2.5 text-sm font-medium text-white hover:opacity-90"
+                    className="flex-1 rounded-lg bg-primary py-2.5 text-sm font-medium text-white hover:bg-primary-hover"
                 >
                     Approve & publish
                 </button>
