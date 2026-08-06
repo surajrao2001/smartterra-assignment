@@ -217,7 +217,6 @@ export const useAppStore = create<AppState>()(
                     selectedElementId: element.id,
                     showPendingOverlay: true,
                 });
-                console.log(edits)
             },
 
             
@@ -289,7 +288,6 @@ export const useAppStore = create<AppState>()(
                         ],
                     })),
                 });
-                console.log(edits)
             },
 
             deleteElementInEdit: (editId, elementId) => {

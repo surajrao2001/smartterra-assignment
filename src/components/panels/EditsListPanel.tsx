@@ -1,4 +1,4 @@
-import { useEffect, useState } from 'react';
+import { useEffect } from 'react';
 import { StatusBadge } from '../ui/StatusBadge';
 import { useAppStore } from '../../store/useAppStore';
 import { getEditTitle } from '../../utils/editSummary';
