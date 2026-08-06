@@ -26,6 +26,7 @@ export function EditsListPanel({ variant = 'compact' }: EditsListPanelProps) {
         currentUser?.role
     );
 
+
     useEffect(() => {
         if (selectedEditId || filtered.length === 0) return;
         if (currentUser?.role === 'operator' || currentUser?.role === 'admin') {

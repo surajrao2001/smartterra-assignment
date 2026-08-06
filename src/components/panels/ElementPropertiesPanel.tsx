@@ -336,7 +336,7 @@ function PropertyFields({
                         <input
                             className="w-28 rounded-lg border border-border bg-surface-muted px-3 py-1.5 text-right text-sm text-text outline-none focus:border-primary"
                             value={f.value}
-                            onChange={e =>
+                            onBlur={e =>
                                 onChange(
                                     f.key,
                                     typeof f.value === 'number'
