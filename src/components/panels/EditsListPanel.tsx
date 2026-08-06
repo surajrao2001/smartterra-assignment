@@ -1,4 +1,4 @@
-import { useEffect } from 'react';
+import { useEffect, useState } from 'react';
 import { StatusBadge } from '../ui/StatusBadge';
 import { useAppStore } from '../../store/useAppStore';
 import { getEditTitle } from '../../utils/editSummary';
@@ -25,6 +25,7 @@ export function EditsListPanel({ variant = 'compact' }: EditsListPanelProps) {
         currentUser?.id,
         currentUser?.role
     );
+
 
     useEffect(() => {
         if (selectedEditId || filtered.length === 0) return;

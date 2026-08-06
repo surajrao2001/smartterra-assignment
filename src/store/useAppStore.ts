@@ -129,7 +129,6 @@ export const useAppStore = create<AppState>()(
             togglePendingOverlay: () =>
                 set(s => ({ showPendingOverlay: !s.showPendingOverlay })),
             setShowPendingOverlay: value => set({ showPendingOverlay: value }),
-
             createDraftEdit: () => {
                 const user = requireUser(get);
                 if (!user || !CAN.editProperties(user.role)) {
@@ -218,7 +217,10 @@ export const useAppStore = create<AppState>()(
                     selectedElementId: element.id,
                     showPendingOverlay: true,
                 });
+                console.log(edits)
             },
+
+            
 
             modifyElementInEdit: (editId, elementId, patch) => {
                 const user = requireUser(get);
@@ -287,6 +289,7 @@ export const useAppStore = create<AppState>()(
                         ],
                     })),
                 });
+                console.log(edits)
             },
 
             deleteElementInEdit: (editId, elementId) => {
